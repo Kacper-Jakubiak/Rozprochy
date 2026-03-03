@@ -1,0 +1,17 @@
+# Java
+*.class
+*.jar
+*.war
+*.ear
+*.iml
+*.log
+target/
+bin/
+
+# Python
+__pychache__/
+*.pyc
+*.pyo
+*.pyd
+venv/
+.env

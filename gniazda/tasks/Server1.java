@@ -23,6 +23,7 @@ public class Server1 {
                 String confirmation = "[CONFIRMATION] " + msg;
                 byte[] sendBuffer = confirmation.getBytes();
                 DatagramPacket sendPacket = new DatagramPacket(sendBuffer, sendBuffer.length, receivePacket.getAddress(), receivePacket.getPort());
+                System.out.println("client addr: " + receivePacket.getAddress());
                 socket.send(sendPacket);
             }
         }

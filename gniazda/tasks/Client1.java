@@ -7,7 +7,7 @@ public class Client1 {
     {
         System.out.println("JAVA CLIENT 1");
         DatagramSocket socket = null;
-        int portNumber = 9008;
+        int portNumber = 9001;
 
         try {
             socket = new DatagramSocket();

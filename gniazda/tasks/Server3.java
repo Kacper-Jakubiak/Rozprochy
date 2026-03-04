@@ -2,7 +2,6 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 public class Server3 {
@@ -10,7 +9,7 @@ public class Server3 {
     {
         System.out.println("JAVA SERVER3");
         DatagramSocket socket = null;
-        int portNumber = 9009;
+        int portNumber = 9003;
 
         try{
             socket = new DatagramSocket(portNumber);

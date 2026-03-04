@@ -1,7 +1,7 @@
 import socket;
 
 serverIP = "127.0.0.1"
-serverPort = 9009
+serverPort = 9003
 
 msg_bytes = (300).to_bytes(4, byteorder='little')
 

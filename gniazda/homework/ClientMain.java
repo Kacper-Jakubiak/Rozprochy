@@ -13,11 +13,18 @@ class Client {
   private final String host;
   private final int port;
   private final AtomicBoolean running;
+  private final String asciiCode;
+  private static final String ASCII_ART = """
+       /\\_/\\
+      ( o.o )
+       > ^ <
+      """;
 
   public Client(String host, int port) {
     this.host = host;
     this.port = port;
     this.running = new AtomicBoolean(false);
+    this.asciiCode = "U";
   }
 
   public void start() {
@@ -38,7 +45,7 @@ class Client {
         if (!scanner.hasNextLine())
           break;
         String message = scanner.nextLine();
-        if ("M".equals(message)) {
+        if (asciiCode.equals(message)) {
           sendASCIIArt(udpSocket);
         } else {
           sendMessage(message, out);
@@ -57,13 +64,8 @@ class Client {
   }
 
   private void sendASCIIArt(DatagramSocket udpSocket) {
-    String art = """
-         /\\_/\\
-        ( o.o )
-         > ^ <
-        """;
     try {
-      byte[] buffer = art.getBytes();
+      byte[] buffer = ASCII_ART.getBytes();
       InetAddress serverAddress = InetAddress.getByName(host);
 
       DatagramPacket packet = new DatagramPacket(buffer, buffer.length, serverAddress, port);

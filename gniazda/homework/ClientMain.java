@@ -5,7 +5,7 @@ import java.io.*;
 
 public class ClientMain {
   public static void main(String[] args) {
-    new Client("localhost", 5000).start();
+    new Client("localhost", 7000).start();
   }
 }
 
@@ -15,9 +15,21 @@ class Client {
   private final AtomicBoolean running;
   private final String asciiCode;
   private static final String ASCII_ART = """
-       /\\_/\\
-      ( o.o )
-       > ^ <
+                        _____________________
+    /  .       .      (<$$$$$$>#####<::::::>)
+   .      .     .  _/~~~~~~~~~~~~~~~~~~~~~~~~~\\_   .       .   .   \\
+.(          . .  /~                             ~\\ . .   .
+  ( . .        .~                                 ~.      .         )
+           ()\\/_____                           _____\\/()   .    .  ).
+(         .-''      ~~~~~~~~~~~~~~~~~~~~~~~~~~~     ``-.  ...
+.  . . .-~              __________________              ~-.  .    /
+ .   ..`~~/~~~~~~~~~~~~TTTTTTTTTTTTTTTTTTTT~~~~~~~~~~~~\\~~'    . ) .
+    . .| | | #### #### || | | | [] | | | || #### #### | | | .
+   (   ;__\\|___________|++++++++++++++++++|___________|/__;.   .
+     .  (~~====___________________________________====~~~)
+ ( .  .. \\------_____________[ POLICE ]__________-------/ ..  .     )
+         .  |      ||         ~~~~~~~~       ||      |
+             \\_____/                          \\_____/
       """;
 
   public Client(String host, int port) {
@@ -72,7 +84,7 @@ class Client {
 
       udpSocket.send(packet);
     } catch (IOException e) {
-      System.err.println("Failed to send UDP art: " + e.getMessage());
+      System.err.println("Failed to send ASCII art: " + e.getMessage());
     }
   }
 
@@ -91,7 +103,7 @@ class Client {
       running.set(false);
       try {
         tcpSocket.close();
-      } catch (IOException ignored) {
+      } catch (IOException e) {
       }
     }
   }

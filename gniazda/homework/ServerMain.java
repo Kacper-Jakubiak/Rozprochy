@@ -8,10 +8,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 public class ServerMain {
-  private static final int PORT = 5000;
-
   public static void main(String[] args) {
-    new Server(PORT).start();
+    new Server(7000).start();
   }
 }
 
@@ -142,6 +140,7 @@ class Server {
       } finally {
         if (out != null) {
           clientWriters.remove(out);
+          out.close();
         }
         try {
           socket.close();

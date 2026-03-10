@@ -1,123 +1,137 @@
-from fastapi import FastAPI
-from enum import Enum
-
-app=FastAPI( )
-
-# sample requests and queries
-@app.get("/")
-async def root() :
-    return {"message" : "Hello World"}
-
-# sample path paramters => entries in URL
-@app.get("/hello/{name}")
-async def say_hello(name: str) :
-    return {"message" : f"Hello {name}"}
-
-# Path parameters predefined values
-# https://fastapi.tiangolo.com/tutorial/path-params/
-class ModelName(str, Enum):
-    alexnet = "alexnet"
-    resnet = "resnet"
-    lenet = "lenet"
-
-@app.get("/v1/models/{model_name}")
-async def get_model(model_name: ModelName):
-    if model_name is ModelName.alexnet:
-        return {"model_name": model_name, "message": "Deep Learning FTW!"}
-    if model_name.value == "lenet":
-        return {"model_name": model_name, "message": "LeCNN all the images"}
-    return {"model_name": model_name, "message": "Have some residuals"}
-
-# query parametres are added as elements to the url e.g. items?skip=10&limit=3
-# https://fastapi.tiangolo.com/tutorial/query-params/
-fake_items_db = [{"item_name": "Foo"}, {"item_name": "Bar"}, {"item_name": "Baz"}]
-
-@app.get("/v2/items")
-async def read_item(skip: int = 0, limit: int = 10):
-    return fake_items_db[skip : skip + limit]
-
-# Optional parameters added to query, one of the element in Union
-from typing import Union
-
-#In this case, there are 3 query parameters:
-# needy, a required str.
-# skip, an int with a default value of 0.
-# limit, an optional int.
-
-@app.get("/v3/items/{item_id}")
-async def read_user_item(
-    item_id: str, needy: str, skip: int = 0, limit: Union[int, None] = None
-):
-    item = {"item_id": item_id, "needy": needy, "skip": skip, "limit": limit}
-    return item
-
-# if you want to send it as a request body you have to define the class inheritet from pydantic base model
-# Request Body
-# https://fastapi.tiangolo.com/tutorial/body/
+from fastapi import FastAPI, HTTPException, Response, status
+from uuid import uuid4
+from datetime import datetime
 from pydantic import BaseModel
 
-class Item(BaseModel):
-    name: str
-    description: Union[str, None] = None
-    price: float
-    tax: Union[float, None] = None
-# create model
-@app.post("/v4/items/")
-async def create_item(item: Item):
-    return item
-# using model
+app = FastAPI()
 
-@app.post("/v5/items/")
-async def create_item(item: Item):
-    item_dict = item.dict()
-    if item.tax:
-        price_with_tax = item.price + item.tax
-        item_dict.update({"price_with_tax": price_with_tax})
-    return item_dict
+@app.get("/")
+async def root():
+    return {"message": "Doodle Voting API"}
 
-# all together
 
-@app.put("/v6/items/{item_id}")
-async def create_item(item_id: int, item: Item, q: Union[str, None] = None):
-    result = {"item_id": item_id, **item.dict()}
-    if q:
-        result.update({"q": q})
-    return result
+class PollModel(BaseModel):
+    title: str
+    createdBy: str
+    options: list[str]
+    description: str = ""
 
-# If the parameter is also declared in the path, it will be used as a path parameter.
-# If the parameter is of a singular type (like int, float, str, bool, etc) it will be interpreted as a query parameter.
-# If the parameter is declared to be of the type of a Pydantic model, it will be interpreted as a request body.
+class VoteModel(BaseModel):
+    voterName: str
+    optionId: str
 
-# additional status code:
-# https://fastapi.tiangolo.com/advanced/additional-status-codes/
+polls_database: list[dict] = []
 
-from fastapi import Body, FastAPI, status
-from fastapi.responses import JSONResponse
+def find_poll_db(poll_id: str) -> dict:
+    global polls_database
+    poll = next((p for p in polls_database if p["id"] == poll_id), None)
+    if not poll:
+        raise HTTPException(status_code=404, detail="PollModel not found")
+    return poll
 
-items = {"foo": {"name": "Fighters", "size": 6}, "bar": {"name": "Tenders", "size": 3}}
+@app.post("/v1/polls", status_code=status.HTTP_201_CREATED)
+async def create_poll(poll: PollModel):
+    new_poll = {
+        "id": str(uuid4()),
+        "title": poll.title,
+        "description": poll.description,
+        "createdBy": poll.createdBy,
+        "createdAt": datetime.now(),
+        "options": {str(uuid4()): opt for opt in poll.options},
+        "votes": {}
+    }
 
-@app.put("/v7/items/{item_id}")
-async def upsert_item(
-    item_id: str,
-    name: Union[str, None] = Body(default=None),
-    size: Union[int, None] = Body(default=None),
-):
-    if item_id in items:
-        item = items[item_id]
-        item["name"] = name
-        item["size"] = size
-        return item
-    else:
-        item = {"name": name, "size": size}
-        items[item_id] = item
-        return JSONResponse(status_code=status.HTTP_201_CREATED, content=item)
+    polls_database.append(new_poll)
+    return new_poll
 
-@app.delete("/v8/items/delete")
-async def delete_and_error(error :int):
-    return_content = ""
-    if error >= 400 and error < 500 :
-        return JSONResponse(status_code=status.HTTP_404_NOT_FOUND, content=return_content)
-    elif error >= 500 and error <600:
-        return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content=return_content)
-    else:
-        return JSONResponse(status_code=status.HTTP_501_NOT_IMPLEMENTED, content=return_content)
+
+@app.get("/v2/polls")
+async def get_polls(skip: int = 0, limit: int = 10):
+    return polls_database[skip : skip + limit]
+
+
+@app.get("/v3/polls/{poll_id}")
+async def get_poll(poll_id: str):
+    poll = find_poll_db(poll_id)
+    return poll
+
+
+@app.put("/v4/polls/{poll_id}")
+async def update_poll(poll_id: str, poll_data: PollModel):
+    poll = find_poll_db(poll_id)
+
+    poll["title"] = poll_data.title
+    poll["description"] = poll_data.description
+    poll["createdBy"] = poll_data.createdBy
+    poll["options"] = {str(uuid4()): opt for opt in poll.options}
+
+    return poll
+
+
+@app.delete("/v5/polls/{poll_id}")
+async def delete_poll(poll_id: str):
+    _ = find_poll_db(poll_id)
+
+    global polls_database
+    polls_database = [p for p in polls_database if p["id"] != poll_id]
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@app.post("/v6/polls/{poll_id}/votes", status_code=status.HTTP_201_CREATED)
+async def add_vote(poll_id: str, vote_data: VoteModel):
+    poll = find_poll_db(poll_id)
+
+    if vote_data.voterName in poll["votes"]:
+      raise HTTPException(status_code=400, detail="User already voted")
+
+    if vote_data.optionId not in poll["options"]:
+      raise HTTPException(status_code=400, detail="Invalid option")
+
+    poll["votes"][vote_data.voterName] = vote_data.optionId
+
+    return {vote_data.voterName: vote_data.optionId}
+
+
+@app.put("/v8/polls/{poll_id}/votes/{voter_name}")
+async def update_vote(poll_id: str, voter_name: str, vote_data: VoteModel):
+    poll = find_poll_db(poll_id)
+
+    if voter_name not in poll["votes"]:
+        raise HTTPException(status_code=404, detail="Vote not found")
+
+    if vote_data.optionId not in poll["options"]:
+      raise HTTPException(status_code=400, detail="Invalid option")
+
+
+    poll["votes"][voter_name] = vote_data.optionId
+
+    return {voter_name: vote_data.optionId}
+
+@app.delete("/v4/polls/{poll_id}/votes/{voter_name}")
+async def delete_vote(poll_id: str, voter_name: str):
+    poll = find_poll_db(poll_id)
+
+    if voter_name not in poll["votes"]:
+        raise HTTPException(status_code=404, detail="Vote not found")
+
+    del poll["votes"][voter_name]
+
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@app.get("/v7/polls/{poll_id}/results")
+async def get_results(poll_id: str):
+    poll = find_poll_db(poll_id)
+
+    results = []
+
+    for option_id, option_text in poll["options"].items():
+        count = sum(1 for v in poll["votes"].values() if v == option_id)
+
+        results.append({
+            "optionId": option_id,
+            "option": option_text,
+            "votes": count
+        })
+
+    return results

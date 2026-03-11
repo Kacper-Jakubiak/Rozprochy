@@ -26,11 +26,12 @@ def find_poll_db(poll_id: str) -> dict:
     global polls_database
     poll = next((p for p in polls_database if p["id"] == poll_id), None)
     if not poll:
-        raise HTTPException(status_code=404, detail="PollModel not found")
+        raise HTTPException(status_code=404, detail="Poll not found")
     return poll
 
-@app.post("/v1/polls", status_code=status.HTTP_201_CREATED)
+@app.post("/polls", status_code=status.HTTP_201_CREATED)
 async def create_poll(poll: PollModel):
+    global polls_database
     new_poll = {
         "id": str(uuid4()),
         "title": poll.title,
@@ -45,18 +46,18 @@ async def create_poll(poll: PollModel):
     return new_poll
 
 
-@app.get("/v2/polls")
+@app.get("/polls")
 async def get_polls(skip: int = 0, limit: int = 10):
     return polls_database[skip : skip + limit]
 
 
-@app.get("/v3/polls/{poll_id}")
+@app.get("/polls/{poll_id}")
 async def get_poll(poll_id: str):
     poll = find_poll_db(poll_id)
     return poll
 
 
-@app.put("/v4/polls/{poll_id}")
+@app.put("/polls/{poll_id}")
 async def update_poll(poll_id: str, poll_data: PollModel):
     poll = find_poll_db(poll_id)
 
@@ -68,7 +69,7 @@ async def update_poll(poll_id: str, poll_data: PollModel):
     return poll
 
 
-@app.delete("/v5/polls/{poll_id}")
+@app.delete("/polls/{poll_id}")
 async def delete_poll(poll_id: str):
     _ = find_poll_db(poll_id)
 
@@ -78,7 +79,7 @@ async def delete_poll(poll_id: str):
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
-@app.post("/v6/polls/{poll_id}/votes", status_code=status.HTTP_201_CREATED)
+@app.post("/polls/{poll_id}/votes", status_code=status.HTTP_201_CREATED)
 async def add_vote(poll_id: str, vote_data: VoteModel):
     poll = find_poll_db(poll_id)
 
@@ -93,7 +94,7 @@ async def add_vote(poll_id: str, vote_data: VoteModel):
     return {vote_data.voterName: vote_data.optionId}
 
 
-@app.put("/v8/polls/{poll_id}/votes/{voter_name}")
+@app.put("/polls/{poll_id}/votes/{voter_name}")
 async def update_vote(poll_id: str, voter_name: str, vote_data: VoteModel):
     poll = find_poll_db(poll_id)
 
@@ -108,7 +109,7 @@ async def update_vote(poll_id: str, voter_name: str, vote_data: VoteModel):
 
     return {voter_name: vote_data.optionId}
 
-@app.delete("/v4/polls/{poll_id}/votes/{voter_name}")
+@app.delete("/polls/{poll_id}/votes/{voter_name}")
 async def delete_vote(poll_id: str, voter_name: str):
     poll = find_poll_db(poll_id)
 
@@ -119,7 +120,7 @@ async def delete_vote(poll_id: str, voter_name: str):
 
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
-@app.get("/v7/polls/{poll_id}/results")
+@app.get("/polls/{poll_id}/results")
 async def get_results(poll_id: str):
     poll = find_poll_db(poll_id)
 

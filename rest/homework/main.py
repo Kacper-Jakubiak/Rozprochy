@@ -36,7 +36,7 @@ def generate_html_answer(footprint_dict: dict[str, float], best_mode: str) -> st
             <ul>
                 {"".join(f"<li>{label}: {footprint}</li>" for label, footprint in footprint_dict.items())}
             </ul>
-            <p>Lowest emission mode: <strong>{best_mode}</strong></p>
+            <p>Lowest emission mode: {best_mode}</p>
         </body>
     </html>
     """
@@ -49,12 +49,18 @@ async def fetch_footprint(client: httpx.AsyncClient, mode: str, distance: str, c
         "mode": mode,
         "country": country
     }
+
     response = await client.get(URL, params=params, timeout=10)
     if response.status_code != 200:
         raise HTTPException(status_code=502, detail=f"Carbon API error ({response.status_code}): {response.text}")
     
-    footprint = response.json().get("carbonFootprint")
-    return float(footprint)
+    footprint = response.json().get("carbonFootprint", None)
+    try:
+        footprint_float = float(footprint)
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=502, detail=f"Invalid carbon footprint value from API: {footprint}")
+    
+    return footprint_float
 
 @app.get("/")
 async def root_html():
@@ -101,6 +107,9 @@ async def root_html():
 
 @app.get("/analyze-trip")
 async def analyze_trip(distance: float, transport_type: str, country: str):
+    if distance <= 0:
+        raise HTTPException(status_code=400, detail="Distance must be a positive number.")
+
     if transport_type not in TRANSPORT_TO_MODES.keys():
         raise HTTPException(status_code=400, detail=f"Invalid vehicle type. Must be one of: {', '.join(TRANSPORT_TO_MODES.keys())}")
     
